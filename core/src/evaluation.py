@@ -19,6 +19,7 @@ from sklearn.metrics import (
     accuracy_score,
     average_precision_score,
     balanced_accuracy_score,
+    brier_score_loss,
     confusion_matrix,
     f1_score,
     matthews_corrcoef,
@@ -271,3 +272,151 @@ def generate_evaluation_report(
     logger.info("=" * 60)
 
     return report
+
+
+# ---------------------------------------------------------------------------
+# Bootstrap CIs for all metrics (not just AUC)
+# ---------------------------------------------------------------------------
+def bootstrap_all_metrics_ci(
+    y_true: np.ndarray | pd.Series,
+    y_prob: np.ndarray | pd.Series,
+    n_boot: int = config.BOOTSTRAP_N,
+    threshold: float = 0.5,
+    random_state: int = config.RANDOM_STATE,
+) -> dict[str, dict[str, float]]:
+    """Compute bootstrap 95%% CIs for all key metrics.
+
+    Returns
+    -------
+    Dict mapping metric name to {mean, ci_lower, ci_upper}.
+    """
+    y_true = np.asarray(y_true)
+    y_prob = np.asarray(y_prob)
+    y_pred = (y_prob >= threshold).astype(int)
+    rng = np.random.RandomState(random_state)
+
+    pos_idx = np.flatnonzero(y_true == 1)
+    neg_idx = np.flatnonzero(y_true == 0)
+
+    if len(pos_idx) == 0 or len(neg_idx) == 0:
+        logger.warning("Cannot compute bootstrap CIs: only one class present")
+        return {}
+
+    boot_data: dict[str, list[float]] = {
+        "roc_auc": [], "pr_auc": [], "sensitivity": [],
+        "specificity": [], "balanced_accuracy": [], "mcc": [],
+        "brier_score": [],
+    }
+
+    for _ in range(n_boot):
+        idx_pos = rng.choice(pos_idx, size=len(pos_idx), replace=True)
+        idx_neg = rng.choice(neg_idx, size=len(neg_idx), replace=True)
+        idx = np.concatenate([idx_pos, idx_neg])
+
+        yt = y_true[idx]
+        yp = y_prob[idx]
+        yd = (yp >= threshold).astype(int)
+
+        boot_data["roc_auc"].append(roc_auc_score(yt, yp))
+        boot_data["pr_auc"].append(average_precision_score(yt, yp))
+        boot_data["brier_score"].append(brier_score_loss(yt, yp))
+
+        cm = confusion_matrix(yt, yd, labels=[0, 1])
+        tn, fp, fn, tp = cm.ravel()
+
+        sens = tp / (tp + fn) if (tp + fn) > 0 else 0
+        spec = tn / (tn + fp) if (tn + fp) > 0 else 0
+        boot_data["sensitivity"].append(sens)
+        boot_data["specificity"].append(spec)
+        boot_data["balanced_accuracy"].append((sens + spec) / 2)
+
+        mcc_val = matthews_corrcoef(yt, yd) if len(np.unique(yt)) > 1 else 0
+        boot_data["mcc"].append(mcc_val)
+
+    results = {}
+    for metric, values in boot_data.items():
+        arr = np.array(values)
+        results[metric] = {
+            "mean": float(np.mean(arr)),
+            "ci_lower": float(np.percentile(arr, 2.5)),
+            "ci_upper": float(np.percentile(arr, 97.5)),
+        }
+
+    logger.info("Bootstrap CIs computed for %d metrics (%d bootstraps)",
+                len(results), n_boot)
+    return results
+
+
+# ---------------------------------------------------------------------------
+# Decision Curve Analysis (DCA)
+# ---------------------------------------------------------------------------
+def decision_curve_analysis(
+    y_true: np.ndarray | pd.Series,
+    y_prob: np.ndarray | pd.Series,
+    n_thresholds: int = 100,
+    threshold_range: tuple[float, float] = (0.0, 0.5),
+) -> pd.DataFrame:
+    """Compute net benefit across threshold probabilities (DCA).
+
+    Returns
+    -------
+    DataFrame with threshold, net benefit (model), treat-all, treat-none.
+    """
+    y_true = np.asarray(y_true)
+    y_prob = np.asarray(y_prob)
+    n = len(y_true)
+    thresholds = np.linspace(threshold_range[0], threshold_range[1], n_thresholds)
+
+    nb_model, nb_all = [], []
+    for t in thresholds:
+        y_pred = (y_prob >= t).astype(int)
+        tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
+        weight = t / (1 - t) if t < 1.0 else 999
+        nb_model.append((tp / n) - (fp / n) * weight)
+        prevalence = y_true.mean()
+        nb_all.append(prevalence - (1 - prevalence) * weight)
+
+    return pd.DataFrame({
+        "threshold": thresholds,
+        "net_benefit_model": nb_model,
+        "net_benefit_treat_all": nb_all,
+        "net_benefit_treat_none": 0.0,
+    })
+
+
+# ---------------------------------------------------------------------------
+# Unified results summary
+# ---------------------------------------------------------------------------
+def generate_unified_results_summary(
+    internal_metrics: dict[str, float],
+    internal_ci: dict[str, dict[str, float]],
+    external_metrics: dict[str, float] | None = None,
+    external_ci: dict[str, dict[str, float]] | None = None,
+    model_name: str = "Model",
+    validation_context: str = "",
+) -> pd.DataFrame:
+    """Generate a side-by-side comparison of internal vs external metrics.
+
+    Returns a DataFrame suitable for saving as results_summary.csv.
+    """
+    rows = []
+
+    for metric_name in ["roc_auc", "pr_auc", "sensitivity", "specificity",
+                        "balanced_accuracy", "mcc", "brier_score"]:
+        row = {"metric": metric_name, "model": model_name, "context": validation_context}
+
+        if metric_name in internal_metrics:
+            row["internal_value"] = internal_metrics.get(metric_name, np.nan)
+            ci = internal_ci.get(metric_name, {})
+            row["internal_ci_lower"] = ci.get("ci_lower", np.nan)
+            row["internal_ci_upper"] = ci.get("ci_upper", np.nan)
+
+        if external_metrics is not None and metric_name in external_metrics:
+            row["external_value"] = external_metrics.get(metric_name, np.nan)
+            ci = external_ci.get(metric_name, {}) if external_ci else {}
+            row["external_ci_lower"] = ci.get("ci_lower", np.nan)
+            row["external_ci_upper"] = ci.get("ci_upper", np.nan)
+
+        rows.append(row)
+
+    return pd.DataFrame(rows)

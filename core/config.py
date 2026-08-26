@@ -28,8 +28,10 @@ FIGURES_DIR = OUTPUT_DIR / "figures"
 TABLES_DIR = OUTPUT_DIR / "tables"
 MODELS_DIR = OUTPUT_DIR / "models"
 
+EXTERNAL_DIR = DATA_DIR / "external"
+
 # Ensure output directories exist
-for _dir in (RAW_DIR, INTERIM_DIR, PROCESSED_DIR,
+for _dir in (RAW_DIR, INTERIM_DIR, PROCESSED_DIR, EXTERNAL_DIR,
              FIGURES_DIR, TABLES_DIR, MODELS_DIR):
     _dir.mkdir(parents=True, exist_ok=True)
 
@@ -63,7 +65,6 @@ PSO_INNER_SPLITS: int = 3
 # ---------------------------------------------------------------------------
 VARIANCE_THRESHOLD: float = 0.01
 MI_TOP_K: int = 200
-BORUTA_PERCENTILE: int = 95
 PSO_FINAL_K: int = 30
 PSO_N_PARTICLES: int = 12
 PSO_N_ITERATIONS: int = 10
@@ -75,7 +76,6 @@ PSO_C2: float = 1.5       # social
 # Preprocessing
 # ---------------------------------------------------------------------------
 MISSING_THRESHOLD: float = 0.30   # drop column if >30 % missing
-LOW_VARIANCE_THRESHOLD: float = 0.01
 
 # ---------------------------------------------------------------------------
 # Leakage audit — columns known to leak target information
@@ -106,7 +106,12 @@ TARGET_SOURCE_COLUMN: str = "Biochemical Recurrence Indicator"
 PATIENT_ID_COLUMN: str = "Patient Identifier"
 
 # ---------------------------------------------------------------------------
-# Peenalty PSO alpha
+# External validation
+# ---------------------------------------------------------------------------
+GSE70769_BCR_COL: str = "BCR"
+
+# ---------------------------------------------------------------------------
+# Penalty PSO alpha
 # -----------------------------------------------------------
 PSO_PENALTY_ALPHA: float = 0.001
 # ---------------------------------------------------------------------------
@@ -211,3 +216,15 @@ CONFIDENCE_LEVEL: float = 0.95
 # ---------------------------------------------------------------------------
 FIGURE_DPI: int = 300
 FIGURE_STYLE: str = "seaborn-v0_8-whitegrid"
+
+# ---------------------------------------------------------------------------
+# Stability selection (replaces PSO for improved pipeline)
+# ---------------------------------------------------------------------------
+STABILITY_N_BOOT: int = 100
+STABILITY_THRESHOLD: float = 0.6
+STABILITY_MAX_FEATURES: int = 15
+
+# ---------------------------------------------------------------------------
+# Pipeline version
+# ---------------------------------------------------------------------------
+PIPELINE_VERSION: str = "2.0-consolidated"
