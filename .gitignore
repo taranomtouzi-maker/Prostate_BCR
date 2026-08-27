@@ -1,117 +1,122 @@
-# ============================================
-# Python & Environment
-# ============================================
+```
+# Python
 __pycache__/
 *.py[cod]
-*.pyc
-*.pyo
-*.pyd
+*$py.class
+*.so
 .Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# Virtual environments
 venv/
 .venv/
-.env
-.env.local
-.env.*
 ENV/
-env/
-virtualenv/
 
-# ============================================
-# Build & Dependencies
-# ============================================
-pip-wheel-metadata/
-.tox/
-.coverage
-htmlcov/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-build/
-dist/
-*.egg-info/
-*.egg
-wheels/
-
-# ============================================
-# IDE & OS
-# ============================================
-.idea/
+# IDE
 .vscode/
-*.swp
-*.swo
-*~
+.idea/
+
+# OS
 .DS_Store
 Thumbs.db
-desktop.ini
 
-
-
-# ============================================
-# Project Data & Outputs
-# ============================================
-# پوشه‌های داده و خروجی (همه محتویات)
-data/
-outputs/
-models/
-logs/
-results/
-figures/
-plots/
-reports/
-
-# ============================================
-# Data File Types
-# ============================================
-*.csv
-*.tsv
-*.xls
-*.xlsx
-*.txt
-*.json
-*.jsonl
-*.xml
-*.yaml
-*.yml
-*.parquet
-*.feather
-*.h5
-*.hdf5
-*.pkl
-*.pickle
-*.joblib
-
-# ============================================
-# Images & Binary Files
-# ============================================
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.bmp
-*.tiff
-*.svg
-*.eps
-*.pth
-*.pt
-*.onnx
-*.pb
-*.weights
-*.bin
-
-# ============================================
-# Logs & Temp Files
-# ============================================
+# Logs
 *.log
-*.bak
+
+# Coverage
+.coverage
+coverage/
+htmlcov/
+
+# Environment variables
+.env
+.env.local
+*.env.*
+
+# Temporary files
 *.tmp
-*.temp
-*.pid
-*.seed
-core/outputs/
-core/outputs/**
-*.png
-*.jpg
-*.jpeg
-*.joblib
-*.json
-*.tsv
+*.swp
+*.swo
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pytest
+.pytest_cache/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Unit test / coverage reports
+nosetests.xml
+coverage.xml
+*.cover
+*.gcov
+*.lcov
+*.profraw
+*.profdata
+
+# Jupyter
+.ipynb_checkpoints
+profile_default/
+ipython_config.py
+
+# Archive
+*.zip
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.7z
+*.rar
+*.gz
+*.bz2
+*.xz
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+```
